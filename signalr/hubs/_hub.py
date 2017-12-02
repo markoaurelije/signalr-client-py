@@ -16,12 +16,14 @@ class HubServer:
         self.__hub = hub
 
     def invoke(self, method, *data):
+        i = self.__connection.increment_send_counter()
         self.__connection.send({
             'H': self.name,
             'M': method,
             'A': data,
-            'I': self.__connection.increment_send_counter()
+            'I': i
         })
+        return i
 
 
 class HubClient(object):
@@ -38,6 +40,12 @@ class HubClient(object):
                     if method in self.__handlers:
                         arguments = inner_data['A']
                         self.__handlers[method].fire(*arguments)
+
+            if 'R' in kwargs:
+                index = kwargs['I']
+                reply = kwargs['R']
+                if 'replies' in self.__handlers:
+                    self.__handlers['replies'].fire(kwargs)
 
         connection.received += handle
 
